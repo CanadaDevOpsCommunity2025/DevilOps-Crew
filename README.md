@@ -1,11 +1,11 @@
-# DevOps-Hackathon-Toronto-Team-13
+# DevilOps Crew
 Canada DevOps Community of Practice - Toronto Hackathon Series - Team 13
 
-Project Name - TBD
+Project Name - DevilOps Crew
 
 Team Mentor -
 
 Participant Names - 
 
-     Team Lead - 
-     Team Members - Francis, Shujuan, Derek
+     Team Lead - Shujuan (Susan) Jia
+     Team Members - Derek Xu, Francis Sujai, Arokiaraj

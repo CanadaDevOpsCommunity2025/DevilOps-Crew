@@ -65,6 +65,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Web Interface**:
   - Streamlit-based UI for easy interaction
   - Real-time status updates
+- **Examples Folder**:
+  - Added examples/weekly_trends.py with usage examples
+  - Demonstrates how to use the TV research system programmatically
 
 ### Technical Details
 - **Dependencies**: Python 3.12, CrewAI, Redis, RQ, FastAPI, SQLAlchemy

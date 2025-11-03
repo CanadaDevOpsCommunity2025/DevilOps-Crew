@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added "INTERMEDIATE RESULTS SUMMARY" section showing trend research, news aggregation, and content strategy outputs
   - Modified `src/tv_research/config/tasks.yaml` to include intermediate results in the reporting task
   - Reports now provide full transparency into each stage of the research pipeline
+- **CI/CD Pipeline**: Added comprehensive GitHub Actions workflow for automated testing
+  - Created `.github/workflows/ci.yml` with container validation, API testing, and integration tests
+  - Includes security scanning with Trivy vulnerability scanner
+  - Runs on every commit to the `francis` branch (configurable for `main`)
+  - Tests complete research workflow from start to finish
+  - Validates Docker container builds and service health
 
 ### Fixed
 - **Database Initialization Error**: Fixed worker crashes caused by attempting to create existing database tables

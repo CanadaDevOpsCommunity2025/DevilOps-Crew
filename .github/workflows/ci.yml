@@ -1,0 +1,239 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ francis ]
+  pull_request:
+    branches: [ francis ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  validate-containers:
+    name: Validate Docker Containers
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false
+        tags: tv-research:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Validate Docker image
+      run: |
+        # Check if image was built successfully
+        docker images tv-research:test
+
+        # Validate Dockerfile structure
+        docker run --rm tv-research:test python --version
+        docker run --rm tv-research:test pip list | grep -E "(crewai|fastapi|streamlit)"
+
+  test-containers:
+    name: Test Container Functionality
+    runs-on: ubuntu-latest
+    needs: validate-containers
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build and start containers
+      run: |
+        docker compose build
+        docker compose up -d
+
+        # Wait for services to be healthy
+        echo "Waiting for services to start..."
+        sleep 30
+
+    - name: Check container health
+      run: |
+        # Check if all containers are running
+        docker ps
+
+        # Test Redis connectivity
+        docker exec tv-research-redis redis-cli ping
+
+        # Test API health endpoint
+        curl -f http://localhost:8000/health || (echo "API health check failed" && exit 1)
+
+        # Test UI accessibility
+        curl -f http://localhost:8501 || (echo "UI health check failed" && exit 1)
+
+  api-tests:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+    needs: test-containers
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests pytest
+
+    - name: Start test environment
+      run: |
+        docker compose up -d
+        sleep 30
+
+    - name: Run API tests
+      run: |
+        # Test health endpoint
+        python -c "
+        import requests
+        response = requests.get('http://localhost:8000/health')
+        assert response.status_code == 200
+        assert response.json()['status'] == 'healthy'
+        print('✅ Health endpoint test passed')
+        "
+
+        # Test research endpoints
+        python -c "
+        import requests
+        import time
+
+        # Test GET research list
+        response = requests.get('http://localhost:8000/research')
+        assert response.status_code == 200
+        print('✅ Research list endpoint test passed')
+
+        # Test POST research (start new research)
+        research_data = {'topic': 'CI/CD Test Topic'}
+        response = requests.post('http://localhost:8000/research', json=research_data)
+        assert response.status_code == 200
+        research_id = response.json()['id']
+        print(f'✅ Research creation test passed - ID: {research_id}')
+
+        # Test GET specific research
+        response = requests.get(f'http://localhost:8000/research/{research_id}')
+        assert response.status_code == 200
+        print('✅ Research retrieval test passed')
+        "
+
+        # Test queue status endpoint
+        python -c "
+        import requests
+        response = requests.get('http://localhost:8000/queue/status')
+        assert response.status_code == 200
+        queue_data = response.json()
+        assert 'queues' in queue_data
+        assert 'timestamp' in queue_data
+        print('✅ Queue status endpoint test passed')
+        "
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: api-tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Start full environment
+      run: |
+        docker compose up -d
+        sleep 45  # Give more time for full startup
+
+    - name: Run integration tests
+      run: |
+        # Test complete research workflow
+        python -c "
+        import requests
+        import time
+
+        print('🚀 Starting integration test...')
+
+        # 1. Start research
+        research_data = {'topic': 'Integration Test Topic'}
+        response = requests.post('http://localhost:8000/research', json=research_data)
+        assert response.status_code == 200
+        research_id = response.json()['id']
+        print(f'✅ Research started - ID: {research_id}')
+
+        # 2. Monitor progress
+        max_attempts = 60  # 5 minutes max
+        attempt = 0
+
+        while attempt < max_attempts:
+            response = requests.get(f'http://localhost:8000/research/{research_id}')
+            assert response.status_code == 200
+            status = response.json()['status']
+
+            print(f'📊 Status: {status}')
+
+            if status == 'completed':
+                print('✅ Research completed successfully!')
+                # Check execution time is present
+                exec_time = response.json().get('execution_time')
+                assert exec_time is not None and exec_time > 0
+                print(f'✅ Execution time tracked: {exec_time} seconds')
+                break
+            elif status == 'failed':
+                raise AssertionError('Research failed')
+
+            time.sleep(5)
+            attempt += 1
+        else:
+            raise AssertionError('Research timed out')
+
+        print('🎉 Integration test completed successfully!')
+        "
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: validate-containers
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [api-tests, integration-tests]
+    if: always()
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Stop containers
+      run: |
+        docker compose down -v --remove-orphans
+        docker system prune -f

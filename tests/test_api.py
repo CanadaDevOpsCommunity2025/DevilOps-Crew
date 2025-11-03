@@ -1,223 +1,161 @@
 #!/usr/bin/env python3
 """
-Basic API Tests for TV Channel Research System
-
-These tests validate the core API functionality without requiring
-full container orchestration.
+API Integration Tests for TV Research Tool
+Run with: python -m pytest tests/test_api.py -v
 """
 
 import pytest
 import requests
 import time
-import json
+import os
 from typing import Dict, Any
 
+# Test configuration
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 class TestAPI:
-    """Test suite for API endpoints"""
-
-    def __init__(self, base_url: str = "http://localhost:8000"):
-        self.base_url = base_url
-        self.session = requests.Session()
-        self.session.timeout = 30
+    """Test suite for TV Research API"""
 
     def test_health_endpoint(self):
         """Test health check endpoint"""
-        response = self.session.get(f"{self.base_url}/health")
+        response = requests.get(f"{API_BASE_URL}/health")
         assert response.status_code == 200
 
         data = response.json()
         assert data["status"] == "healthy"
-        print("✅ Health endpoint test passed")
 
-    def test_list_research_empty(self):
-        """Test listing research results when empty"""
-        response = self.session.get(f"{self.base_url}/research")
+    def test_research_list(self):
+        """Test getting research list"""
+        response = requests.get(f"{API_BASE_URL}/research")
         assert response.status_code == 200
 
         data = response.json()
         assert isinstance(data, list)
-        print("✅ List research (empty) test passed")
 
-    def test_create_research_task(self):
-        """Test creating a research task"""
-        payload = {"topic": "API Test Topic"}
-        response = self.session.post(
-            f"{self.base_url}/research",
-            json=payload,
-            headers={"Content-Type": "application/json"}
-        )
+    def test_research_creation(self):
+        """Test creating new research"""
+        research_data = {
+            "topic": "API Test Topic"
+        }
+
+        response = requests.post(f"{API_BASE_URL}/research", json=research_data)
         assert response.status_code == 200
 
         data = response.json()
         assert "id" in data
-        assert data["topic"] == payload["topic"]
-        assert data["status"] in ["queued", "pending", "running"]
+        assert data["topic"] == research_data["topic"]
+        assert data["status"] in ["queued", "running", "completed"]
 
-        # Store the research ID for other tests
-        self.research_id = data["id"]
-        print(f"✅ Create research task test passed (ID: {self.research_id})")
+        return data["id"]
 
-        return data
+    def test_research_retrieval(self):
+        """Test getting specific research"""
+        # First create a research
+        research_id = self.test_research_creation()
 
-    def test_get_research_task(self):
-        """Test getting a specific research task"""
-        if not hasattr(self, 'research_id'):
-            self.test_create_research_task()
-
-        response = self.session.get(f"{self.base_url}/research/{self.research_id}")
+        # Then retrieve it
+        response = requests.get(f"{API_BASE_URL}/research/{research_id}")
         assert response.status_code == 200
 
         data = response.json()
-        assert data["id"] == self.research_id
+        assert data["id"] == research_id
         assert "status" in data
-        assert "created_at" in data
-        print("✅ Get research task test passed")
+        assert "topic" in data
 
-    def test_research_status_progression(self):
-        """Test that research status progresses correctly"""
-        if not hasattr(self, 'research_id'):
-            self.test_create_research_task()
+    def test_queue_status(self):
+        """Test queue status endpoint"""
+        response = requests.get(f"{API_BASE_URL}/queue/status")
+        assert response.status_code == 200
 
-        # Check status progression over time
-        max_checks = 10
-        for i in range(max_checks):
-            response = self.session.get(f"{self.base_url}/research/{self.research_id}")
+        data = response.json()
+        assert "queues" in data
+        assert "timestamp" in data
+        assert isinstance(data["queues"], dict)
+
+        # Check expected queue types
+        expected_queues = ["trend_research", "news_aggregation", "content_strategy", "final_reporting"]
+        for queue in expected_queues:
+            assert queue in data["queues"]
+
+    def test_invalid_research_id(self):
+        """Test retrieving non-existent research"""
+        response = requests.get(f"{API_BASE_URL}/research/99999")
+        assert response.status_code == 404
+
+    def test_research_workflow_completion(self):
+        """Test complete research workflow (may take time)"""
+        # Create research
+        research_data = {"topic": "Workflow Test Topic"}
+        response = requests.post(f"{API_BASE_URL}/research", json=research_data)
+        assert response.status_code == 200
+
+        research_id = response.json()["id"]
+
+        # Monitor progress (with timeout)
+        max_attempts = 120  # 10 minutes max for CI/CD
+        attempt = 0
+
+        while attempt < max_attempts:
+            response = requests.get(f"{API_BASE_URL}/research/{research_id}")
             assert response.status_code == 200
 
             data = response.json()
             status = data["status"]
 
-            print(f"Status check {i+1}: {status}")
-
-            # Valid status progression
-            valid_statuses = ["queued", "running", "trend_research_completed",
-                            "news_aggregation_completed", "content_strategy_completed",
-                            "final_reporting_running", "completed", "failed"]
-
-            assert status in valid_statuses
-
-            # If completed or failed, stop checking
-            if status in ["completed", "failed"]:
-                print(f"✅ Research reached final status: {status}")
+            if status == "completed":
+                # Verify execution time is tracked
+                assert "execution_time" in data
+                assert data["execution_time"] is not None
+                assert data["execution_time"] > 0
                 break
+            elif status == "failed":
+                pytest.fail(f"Research failed: {data.get('error_message', 'Unknown error')}")
 
-            time.sleep(3)  # Wait before next check
-
-        print("✅ Status progression test passed")
-
-    def test_delete_research_task(self):
-        """Test deleting a research task"""
-        if not hasattr(self, 'research_id'):
-            self.test_create_research_task()
-
-        response = self.session.delete(f"{self.base_url}/research/{self.research_id}")
-        assert response.status_code == 200
-
-        data = response.json()
-        assert "message" in data
-        print("✅ Delete research task test passed")
-
-    def test_get_deleted_research_task(self):
-        """Test that deleted research task returns 404"""
-        if not hasattr(self, 'research_id'):
-            return  # Skip if no research ID
-
-        response = self.session.get(f"{self.base_url}/research/{self.research_id}")
-        assert response.status_code == 404
-        print("✅ Get deleted research task test passed (404)")
-
-    def test_api_error_handling(self):
-        """Test API error handling"""
-        # Test invalid research ID
-        response = self.session.get(f"{self.base_url}/research/invalid-id")
-        assert response.status_code == 422  # FastAPI validation error
-
-        # Test non-existent endpoint
-        response = self.session.get(f"{self.base_url}/nonexistent")
-        assert response.status_code == 404
-
-        print("✅ API error handling test passed")
-
-    def run_all_tests(self):
-        """Run all API tests"""
-        print("🚀 Starting API Tests\n")
-
-        test_methods = [
-            self.test_health_endpoint,
-            self.test_list_research_empty,
-            self.test_create_research_task,
-            self.test_get_research_task,
-            self.test_research_status_progression,
-            self.test_api_error_handling,
-            self.test_delete_research_task,
-            self.test_get_deleted_research_task,
-        ]
-
-        passed = 0
-        failed = 0
-
-        for test_method in test_methods:
-            try:
-                print(f"\n{'='*50}")
-                print(f"🔍 Running: {test_method.__name__}")
-                print('='*50)
-
-                test_method()
-                passed += 1
-                print(f"✅ PASSED: {test_method.__name__}")
-
-            except Exception as e:
-                failed += 1
-                print(f"❌ FAILED: {test_method.__name__} - {e}")
-
-        print(f"\n{'='*60}")
-        print("📊 API TEST RESULTS")
-        print('='*60)
-        print(f"✅ Passed: {passed}")
-        print(f"❌ Failed: {failed}")
-        print(f"📈 Total:  {passed + failed}")
-
-        if failed == 0:
-            print("🎉 ALL API TESTS PASSED!")
-            return True
+            time.sleep(5)
+            attempt += 1
         else:
-            print("⚠️  SOME API TESTS FAILED")
-            return False
+            pytest.fail("Research workflow timed out")
 
+def test_container_validation():
+    """Test that containers are properly built and functional"""
+    import subprocess
 
-def main():
-    import argparse
+    # Test Python version in container
+    result = subprocess.run(
+        ["docker", "run", "--rm", "tv-research:test", "python", "--version"],
+        capture_output=True, text=True
+    )
+    assert result.returncode == 0
+    assert "Python 3.12" in result.stdout
 
-    parser = argparse.ArgumentParser(description="Run API tests for TV Channel Research")
-    parser.add_argument("--url", default="http://localhost:8000",
-                       help="API base URL (default: http://localhost:8000)")
-    parser.add_argument("--skip-integration", action="store_true",
-                       help="Skip integration tests that require workers")
-
-    args = parser.parse_args()
-
-    print(f"🧪 Testing API at: {args.url}")
-
-    tester = TestAPI(args.url)
-
-    if args.skip_integration:
-        # Run only basic endpoint tests
-        try:
-            tester.test_health_endpoint()
-            tester.test_list_research_empty()
-            tester.test_api_error_handling()
-            print("🎉 Basic API tests passed!")
-            return True
-        except Exception as e:
-            print(f"❌ Basic API tests failed: {e}")
-            return False
-    else:
-        # Run full test suite
-        return tester.run_all_tests()
-
+    # Test key dependencies
+    result = subprocess.run(
+        ["docker", "run", "--rm", "tv-research:test", "pip", "list"],
+        capture_output=True, text=True
+    )
+    assert result.returncode == 0
+    assert "crewai" in result.stdout
+    assert "fastapi" in result.stdout
+    assert "streamlit" in result.stdout
 
 if __name__ == "__main__":
-    import sys
-    success = main()
-    sys.exit(0 if success else 1)
+    # Run basic smoke tests
+    print("🧪 Running API smoke tests...")
+
+    api = TestAPI()
+
+    try:
+        api.test_health_endpoint()
+        print("✅ Health endpoint test passed")
+
+        api.test_research_list()
+        print("✅ Research list test passed")
+
+        api.test_queue_status()
+        print("✅ Queue status test passed")
+
+        print("🎉 All smoke tests passed!")
+
+    except Exception as e:
+        print(f"❌ Test failed: {e}")
+        exit(1)

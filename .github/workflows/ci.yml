@@ -267,6 +267,19 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Create test environment file
+      run: |
+        # Create a test .env file for cleanup
+        cat > .env << EOF
+        MODEL=gpt-4o-mini
+        OPENAI_API_KEY=test-key-for-ci-cd-only
+        REPORT_OUTPUT_DIR=/app/reports
+        DEFAULT_RESEARCH_DEPTH=comprehensive
+        CREW_VERBOSE=true
+        CREW_MEMORY=false
+        RESEARCH_TOPIC=Test Topic for CI/CD
+        EOF
+
     - name: Stop containers
       run: |
         docker compose down -v --remove-orphans

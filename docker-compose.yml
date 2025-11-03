@@ -1,0 +1,179 @@
+services:
+  # Redis Message Queue
+  redis:
+    image: redis:7-alpine
+    container_name: tv-research-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # API Backend Service
+  api:
+    container_name: tv-research-api
+    build: .
+    image: tv-research:1.0.0
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - tv_research_data:/app/data
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=sqlite:///./data/tv_research.db
+      - REDIS_URL=redis://redis:6379
+    command: uvicorn tv_research.api:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Worker Services for each agent type
+  worker-trend:
+    build: .
+    image: tv-research:1.0.0
+    volumes:
+      - .:/app
+      - tv_research_data:/app/data
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=sqlite:///./data/tv_research.db
+      - REDIS_URL=redis://redis:6379
+      - WORKER_QUEUE=trend_research
+    command: python -m tv_research.worker
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2  # Scale trend research workers
+
+  worker-news:
+    build: .
+    image: tv-research:1.0.0
+    volumes:
+      - .:/app
+      - tv_research_data:/app/data
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=sqlite:///./data/tv_research.db
+      - REDIS_URL=redis://redis:6379
+      - WORKER_QUEUE=news_aggregation
+    command: python -m tv_research.worker
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2  # Scale news aggregation workers
+
+  worker-content:
+    build: .
+    image: tv-research:1.0.0
+    volumes:
+      - .:/app
+      - tv_research_data:/app/data
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=sqlite:///./data/tv_research.db
+      - REDIS_URL=redis://redis:6379
+      - WORKER_QUEUE=content_strategy
+    command: python -m tv_research.worker
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 1  # Content strategy workers
+
+  worker-reporting:
+    build: .
+    image: tv-research:1.0.0
+    volumes:
+      - .:/app
+      - ./reports:/app/reports
+      - tv_research_data:/app/data
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=sqlite:///./data/tv_research.db
+      - REDIS_URL=redis://redis:6379
+      - WORKER_QUEUE=final_reporting
+    command: python -m tv_research.worker
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 1  # Final reporting workers
+
+  # Web UI Service
+  ui:
+    container_name: tv-research-ui
+    build: .
+    image: tv-research:1.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - API_BASE_URL=http://api:8000
+    command: streamlit run src/tv_research/ui.py --server.port 8501 --server.address 0.0.0.0
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Legacy CLI Service (for backward compatibility)
+  tv-crew:
+    container_name: tv-channel-research
+    build: .
+    image: tv-research:1.0.0
+    volumes:
+      - .:/app
+      - ./reports:/app/reports
+      - ./tv_research.db:/app/tv_research.db
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - RESEARCH_TOPIC=${RESEARCH_TOPIC:-}
+      - DATABASE_URL=sqlite:///./tv_research.db
+    command: >
+      sh -c "
+      if [ -n \"$RESEARCH_TOPIC\" ]; then
+        python -m tv_research.main \"$RESEARCH_TOPIC\"
+      else
+        python -m tv_research.main
+      fi
+      "
+    profiles:
+      - cli
+
+volumes:
+  tv_research_data:
+  redis_data:

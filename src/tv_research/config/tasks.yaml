@@ -181,32 +181,37 @@ reporting_task:
        - Key findings and patterns identified about {research_focus}
        - Critical time-sensitive opportunities related to {research_focus}
 
-    2. {research_focus} COMPREHENSIVE ANALYSIS
+    2. INTERMEDIATE RESULTS SUMMARY
+       - Trend Research Findings: Include the complete results from the trend research phase
+       - News Aggregation Results: Include the complete results from the news aggregation phase
+       - Content Strategy Analysis: Include the complete results from the content strategy phase
+
+    3. {research_focus} COMPREHENSIVE ANALYSIS
        - Detailed breakdown of all research findings on {research_focus}
        - Expert perspectives and stakeholder analysis
        - Historical context and future outlook for {research_focus}
 
-    3. BREAKING NEWS DIGEST
+    4. BREAKING NEWS DIGEST
        - Current breaking stories related to {research_focus} with full context
        - Developing stories to monitor within {research_focus}
        - Source verification and credibility notes
 
-    4. CONTENT RECOMMENDATIONS
+    5. CONTENT RECOMMENDATIONS
        - Fully developed story proposals focused on {research_focus} with production details
        - Interview subject contacts and backgrounds (experts on {research_focus})
        - Visual element requirements and sourcing for {research_focus} coverage
        - Production timeline and resource needs
 
-    5. PRODUCTION PRIORITIES
+    6. PRODUCTION PRIORITIES
        - Recommended shooting schedule for {research_focus} content
        - Resource allocation suggestions
        - Risk assessment and contingency plans for {research_focus} coverage
 
-    6. COMPETITIVE ANALYSIS
+    7. COMPETITIVE ANALYSIS
        - What other networks are covering {research_focus}
        - Unique angles and differentiation opportunities for {research_focus}
 
-    7. APPENDIX
+    8. APPENDIX
        - Full source list with links related to {research_focus}
        - Contact information for interview subjects (experts on {research_focus})
        - Additional research resources for {research_focus}
@@ -225,32 +230,37 @@ reporting_task:
        - Key trends and patterns identified
        - Critical time-sensitive opportunities
 
-    2. TRENDING TOPICS ANALYSIS
+    2. INTERMEDIATE RESULTS SUMMARY
+       - Trend Research Findings: Include the complete results from the trend research phase
+       - News Aggregation Results: Include the complete results from the news aggregation phase
+       - Content Strategy Analysis: Include the complete results from the content strategy phase
+
+    3. TRENDING TOPICS ANALYSIS
        - Detailed breakdown of all identified trends
        - Audience engagement metrics
        - Broadcast suitability ratings
 
-    3. BREAKING NEWS DIGEST
+    4. BREAKING NEWS DIGEST
        - Current breaking stories with full context
        - Developing stories to monitor
        - Source verification and credibility notes
 
-    4. CONTENT RECOMMENDATIONS
+    5. CONTENT RECOMMENDATIONS
        - Fully developed story proposals with production details
        - Interview subject contacts and backgrounds
        - Visual element requirements and sourcing
        - Production timeline and resource needs
 
-    5. PRODUCTION PRIORITIES
+    6. PRODUCTION PRIORITIES
        - Recommended shooting schedule
        - Resource allocation suggestions
        - Risk assessment and contingency plans
 
-    6. COMPETITIVE ANALYSIS
+    7. COMPETITIVE ANALYSIS
        - What other networks are covering
        - Unique angles and differentiation opportunities
 
-    7. APPENDIX
+    8. APPENDIX
        - Full source list with links
        - Contact information for interview subjects
        - Additional research resources

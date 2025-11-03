@@ -66,16 +66,8 @@ def enqueue_research_workflow(result_id: int, topic: Optional[str]):
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
 
-    # Enqueue trend research first
+    # Enqueue trend research first - workers will chain subsequent jobs
     trend_job = trend_queue.enqueue(run_trend_research, result_id, inputs)
-
-    # Chain the jobs: trend -> news -> content -> reporting
-    news_job = news_queue.enqueue(run_news_aggregation, result_id, inputs,
-                                  depends_on=trend_job)
-    content_job = content_queue.enqueue(run_content_strategy, result_id, inputs,
-                                        depends_on=news_job)
-    reporting_job = reporting_queue.enqueue(run_final_reporting, result_id, inputs,
-                                            depends_on=content_job)
 
     return trend_job.id
 

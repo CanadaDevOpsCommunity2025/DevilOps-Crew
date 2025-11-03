@@ -44,7 +44,11 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        # Table might already exist, which is fine
+        print(f"Database initialization note: {e}")
 
 def get_db():
     db = SessionLocal()

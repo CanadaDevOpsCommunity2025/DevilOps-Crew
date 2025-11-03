@@ -57,6 +57,9 @@ def run_trend_research(task_id: int, inputs: dict):
         # Store intermediate result
         update_task_status(task_id, 'trend_research_completed', str(result))
 
+        # Enqueue next job: news aggregation
+        news_queue.enqueue(run_news_aggregation, task_id, inputs, str(result))
+
         return result
 
     except Exception as e:
@@ -82,6 +85,9 @@ def run_news_aggregation(task_id: int, inputs: dict, trend_result: str):
         # Store intermediate result
         update_task_status(task_id, 'news_aggregation_completed', str(result))
 
+        # Enqueue next job: content strategy
+        content_queue.enqueue(run_content_strategy, task_id, inputs, str(result))
+
         return result
 
     except Exception as e:
@@ -106,6 +112,9 @@ def run_content_strategy(task_id: int, inputs: dict, news_result: str):
 
         # Store intermediate result
         update_task_status(task_id, 'content_strategy_completed', str(result))
+
+        # Enqueue next job: final reporting
+        reporting_queue.enqueue(run_final_reporting, task_id, inputs, str(result))
 
         return result
 

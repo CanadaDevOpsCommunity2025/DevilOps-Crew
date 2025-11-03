@@ -4,7 +4,7 @@
 **TV Channel Research Tool**
 *AI-Powered Research & Reporting for TV Channels*
 
-**Team:** Canada DevOps Community of Practice
+**Team:** Francis Sujai Arokiaraj, Shujuan Jia, Saurabh Kamboj, Derek XU
 **Date:** November 3, 2025
 
 🎬 **Built for TV professionals who need fast, accurate, and actionable research**

@@ -1,0 +1,286 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  validate-containers:
+    name: Validate Docker Containers
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and validate Docker image
+      run: |
+        # Build Docker image
+        docker build -t tv-research:test .
+
+        # Check if image was built successfully
+        docker images tv-research:test
+
+        # Validate Dockerfile structure
+        docker run --rm tv-research:test python --version
+        docker run --rm tv-research:test pip list | grep -E "(crewai|fastapi|streamlit)"
+
+  test-containers:
+    name: Test Container Functionality
+    runs-on: ubuntu-latest
+    needs: validate-containers
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create test environment file
+      run: |
+        # Create a test .env file with dummy values for CI/CD
+        cat > .env << EOF
+        MODEL=gpt-4o-mini
+        OPENAI_API_KEY=test-key-for-ci-cd-only
+        REPORT_OUTPUT_DIR=/app/reports
+        DEFAULT_RESEARCH_DEPTH=comprehensive
+        CREW_VERBOSE=true
+        CREW_MEMORY=false
+        RESEARCH_TOPIC=Test Topic for CI/CD
+        EOF
+
+    - name: Build and start containers
+      run: |
+        docker compose build
+        docker compose up -d
+
+        # Wait for services to be healthy
+        echo "Waiting for services to start..."
+        sleep 30
+
+    - name: Check container health
+      run: |
+        # Check if all containers are running
+        docker ps
+
+        # Test Redis connectivity
+        docker exec tv-research-redis redis-cli ping
+
+        # Test API health endpoint
+        curl -f http://localhost:8000/health || (echo "API health check failed" && exit 1)
+
+        # Test UI accessibility
+        curl -f http://localhost:8501 || (echo "UI health check failed" && exit 1)
+
+  api-tests:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+    needs: test-containers
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create test environment file
+      run: |
+        # Create a test .env file with dummy values for CI/CD
+        cat > .env << EOF
+        MODEL=gpt-4o-mini
+        OPENAI_API_KEY=test-key-for-ci-cd-only
+        REPORT_OUTPUT_DIR=/app/reports
+        DEFAULT_RESEARCH_DEPTH=comprehensive
+        CREW_VERBOSE=true
+        CREW_MEMORY=false
+        RESEARCH_TOPIC=Test Topic for CI/CD
+        EOF
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests pytest
+
+    - name: Start test environment
+      run: |
+        docker compose up -d
+        sleep 30
+
+    - name: Run API tests
+      run: |
+        # Test health endpoint
+        python -c "
+        import requests
+        response = requests.get('http://localhost:8000/health')
+        assert response.status_code == 200
+        assert response.json()['status'] == 'healthy'
+        print('✅ Health endpoint test passed')
+        "
+
+        # Test research endpoints
+        python -c "
+        import requests
+        import time
+
+        # Test GET research list
+        response = requests.get('http://localhost:8000/research')
+        assert response.status_code == 200
+        print('✅ Research list endpoint test passed')
+
+        # Test POST research (start new research)
+        research_data = {'topic': 'CI/CD Test Topic'}
+        response = requests.post('http://localhost:8000/research', json=research_data)
+        assert response.status_code == 200
+        research_id = response.json()['id']
+        print(f'✅ Research creation test passed - ID: {research_id}')
+
+        # Test GET specific research
+        response = requests.get(f'http://localhost:8000/research/{research_id}')
+        assert response.status_code == 200
+        print('✅ Research retrieval test passed')
+        "
+
+        # Test queue status endpoint
+        python -c "
+        import requests
+        response = requests.get('http://localhost:8000/queue/status')
+        assert response.status_code == 200
+        queue_data = response.json()
+        assert 'queues' in queue_data
+        assert 'timestamp' in queue_data
+        print('✅ Queue status endpoint test passed')
+        "
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: api-tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create test environment file
+      run: |
+        # Create a test .env file with dummy values for CI/CD
+        cat > .env << EOF
+        MODEL=gpt-4o-mini
+        OPENAI_API_KEY=test-key-for-ci-cd-only
+        REPORT_OUTPUT_DIR=/app/reports
+        DEFAULT_RESEARCH_DEPTH=comprehensive
+        CREW_VERBOSE=true
+        CREW_MEMORY=false
+        RESEARCH_TOPIC=Test Topic for CI/CD
+        EOF
+
+    - name: Start full environment
+      run: |
+        docker compose up -d
+        sleep 45  # Give more time for full startup
+
+    - name: Run integration tests
+      run: |
+        # Test research creation and queue system (without full AI processing)
+        python -c "
+        import requests
+        import time
+
+        print('🚀 Starting integration test...')
+
+        # 1. Start research
+        research_data = {'topic': 'Integration Test Topic'}
+        response = requests.post('http://localhost:8000/research', json=research_data)
+        assert response.status_code == 200
+        research_id = response.json()['id']
+        print(f'✅ Research created successfully - ID: {research_id}')
+
+        # 2. Verify research can be retrieved
+        response = requests.get(f'http://localhost:8000/research/{research_id}')
+        assert response.status_code == 200
+        research_data = response.json()
+        assert research_data['id'] == research_id
+        assert research_data['topic'] == 'Integration Test Topic'
+        print('✅ Research retrieval works')
+
+        # 3. Check queue status
+        response = requests.get('http://localhost:8000/queue/status')
+        assert response.status_code == 200
+        queue_data = response.json()
+        assert 'queues' in queue_data
+        print('✅ Queue status endpoint works')
+
+        # 4. Verify research list includes our research
+        response = requests.get('http://localhost:8000/research')
+        assert response.status_code == 200
+        research_list = response.json()
+        assert len(research_list) > 0
+        our_research = next((r for r in research_list if r['id'] == research_id), None)
+        assert our_research is not None
+        print('✅ Research appears in list')
+
+        # Note: We don't test full completion since AI processing requires real API keys
+        # The integration test verifies the API and queue system work correctly
+        print('🎉 Integration test completed successfully!')
+        print('📝 Note: Full AI processing not tested (requires real API keys)')
+        "
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: validate-containers
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [api-tests, integration-tests]
+    if: always()
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create test environment file
+      run: |
+        # Create a test .env file for cleanup
+        cat > .env << EOF
+        MODEL=gpt-4o-mini
+        OPENAI_API_KEY=test-key-for-ci-cd-only
+        REPORT_OUTPUT_DIR=/app/reports
+        DEFAULT_RESEARCH_DEPTH=comprehensive
+        CREW_VERBOSE=true
+        CREW_MEMORY=false
+        RESEARCH_TOPIC=Test Topic for CI/CD
+        EOF
+
+    - name: Stop containers
+      run: |
+        docker compose down -v --remove-orphans
+        docker system prune -f

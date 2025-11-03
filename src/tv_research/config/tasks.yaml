@@ -1,0 +1,290 @@
+trend_research_task:
+  description: >
+    {% if research_focus %}
+    Perform comprehensive research on the specific topic: {research_focus}.
+
+    Conduct in-depth analysis covering:
+    - Current developments and recent news related to {research_focus}
+    - Key stakeholders, experts, and organizations involved
+    - Historical context and evolution of {research_focus}
+    - Current challenges, controversies, and opportunities
+    - Future trends and predictions for {research_focus}
+    - Public opinion and societal impact
+    - Visual storytelling opportunities and compelling angles
+
+    Focus on aspects that would make compelling TV content for {channel_type}
+    programming during {time_slot} time slots. Gather information suitable for
+    documentary-style or special segment coverage.
+
+    Include diverse perspectives and ensure comprehensive coverage of the topic.
+    {% else %}
+    Research and identify the top 10-15 trending topics currently gaining traction
+    across social media platforms, news outlets, and entertainment channels.
+
+    For each trending topic, provide:
+    - Topic name and brief description
+    - Current engagement metrics (estimated reach, social media mentions, news coverage)
+    - Trend trajectory (rising, peaking, declining)
+    - Target audience demographics
+    - Relevance score for TV broadcast (1-10)
+    - Time-sensitivity (breaking, developing, evergreen)
+
+    Focus on topics that would be relevant for {channel_type} programming during
+    {time_slot} time slots. Consider the current date and recent events.
+
+    Ensure diversity across categories: politics, entertainment, technology,
+    sports, human interest, business, and international news.
+    {% endif %}
+  expected_output: >
+    {% if research_focus %}
+    A comprehensive analysis of {research_focus} with detailed research findings,
+    expert perspectives, historical context, current developments, and recommendations
+    for compelling TV coverage. Include visual storytelling opportunities and
+    production-ready content angles.
+    {% else %}
+    A comprehensive list of 10-15 trending topics with detailed analysis for each,
+    ranked by broadcast relevance. Include engagement metrics, trend trajectory,
+    and preliminary recommendations for TV coverage.
+    {% endif %}
+  agent: trend_researcher
+
+news_aggregation_task:
+  description: >
+    {% if research_focus %}
+    Gather breaking news and developing stories specifically related to {research_focus}
+    from multiple credible sources. Cross-reference information to verify accuracy
+    and identify the most impactful stories for TV coverage of this topic.
+
+    For each story related to {research_focus}, compile:
+    - Headline and summary with direct connection to {research_focus}
+    - Primary and secondary sources
+    - Key facts and timeline as they relate to {research_focus}
+    - Affected locations/people and their connection to the topic
+    - Visual opportunities (footage, graphics, interviews) that illustrate {research_focus}
+    - Story development potential within the broader {research_focus} narrative
+    - Competing narratives or controversies surrounding {research_focus}
+
+    Prioritize stories with strong visual elements, human interest angles related to
+    {research_focus}, and broad audience appeal. Consider both hard news and feature
+    stories that advance understanding of {research_focus}.
+
+    Filter for stories appropriate for {channel_type} and {audience_demographic}.
+    {% else %}
+    Gather breaking news and developing stories from multiple credible sources.
+    Cross-reference information to verify accuracy and identify the most impactful
+    stories for TV coverage.
+
+    For each story, compile:
+    - Headline and summary
+    - Primary and secondary sources
+    - Key facts and timeline
+    - Affected locations/people
+    - Visual opportunities (footage, graphics, interviews)
+    - Story development potential
+    - Competing narratives or controversies
+
+    Prioritize stories with strong visual elements, human interest angles, and
+    broad audience appeal. Consider both hard news and feature stories.
+
+    Filter for stories appropriate for {channel_type} and {audience_demographic}.
+    {% endif %}
+  expected_output: >
+    {% if research_focus %}
+    A curated list of 8-12 breaking and developing news stories related to {research_focus}
+    with complete source attribution, key facts, and preliminary story angles. Stories
+    should be ranked by importance to understanding {research_focus} and time-sensitivity.
+    {% else %}
+    A curated list of 8-12 breaking and developing news stories with complete
+    source attribution, key facts, and preliminary story angles. Stories should
+    be ranked by importance and time-sensitivity.
+    {% endif %}
+  agent: news_aggregator
+  context:
+    - trend_research_task
+
+content_strategy_task:
+  description: >
+    {% if research_focus %}
+    Analyze the comprehensive research on {research_focus} and related news stories
+    to develop actionable content recommendations for TV segments. Transform raw
+    research into production-ready proposals specifically focused on {research_focus}.
+
+    For each recommended story angle related to {research_focus}, provide:
+    - Compelling story angle for TV broadcast that highlights aspects of {research_focus}
+    - Suggested segment length (2min, 5min, 10min, 30min documentary, etc.)
+    - Interview subject recommendations with rationale (experts on {research_focus})
+    - Required visual elements (b-roll, graphics, stock footage) that illustrate {research_focus}
+    - Potential controversies or sensitivities within {research_focus}
+    - Social media tie-in opportunities related to {research_focus}
+    - Cross-promotion possibilities for {research_focus} content
+    - Production complexity rating (low, medium, high)
+    - Estimated production timeline
+    - Props, locations, or special requirements for covering {research_focus}
+
+    Consider the technical and logistical constraints of TV production. Prioritize
+    stories that can be produced within {production_timeline} and fit the
+    {channel_type} brand identity.
+
+    Create a mix of quick-turn stories and longer-form pieces about {research_focus}.
+    Include backup story options in case primary stories fall through.
+    {% else %}
+    Analyze the trending topics and news stories to develop actionable content
+    recommendations for TV segments. Transform raw research into production-ready
+    proposals.
+
+    For each recommended story, provide:
+    - Compelling story angle for TV broadcast
+    - Suggested segment length (2min, 5min, 10min, etc.)
+    - Interview subject recommendations with rationale
+    - Required visual elements (b-roll, graphics, stock footage)
+    - Potential controversies or sensitivities
+    - Social media tie-in opportunities
+    - Cross-promotion possibilities
+    - Production complexity rating (low, medium, high)
+    - Estimated production timeline
+    - Props, locations, or special requirements
+
+    Consider the technical and logistical constraints of TV production. Prioritize
+    stories that can be produced within {production_timeline} and fit the
+    {channel_type} brand identity.
+
+    Create a mix of quick-turn stories and longer-form pieces. Include backup
+    story options in case primary stories fall through.
+    {% endif %}
+  expected_output: >
+    {% if research_focus %}
+    A detailed content strategy document focused on {research_focus} with 6-10 fully
+    developed story proposals, each with specific production recommendations, visual
+    requirements, and interview targets. Include a prioritized production schedule
+    and resource allocation suggestions tailored to covering {research_focus}.
+    {% else %}
+    A detailed content strategy document with 6-10 fully developed story proposals,
+    each with specific production recommendations, visual requirements, and interview
+    targets. Include a prioritized production schedule and resource allocation suggestions.
+    {% endif %}
+  agent: content_strategist
+  context:
+    - trend_research_task
+    - news_aggregation_task
+
+reporting_task:
+  description: >
+    {% if research_focus %}
+    Compile all research on {research_focus}, news aggregation, and content strategy
+    into a comprehensive, broadcast-ready report for the production team focused on
+    this specific topic.
+
+    The report must include:
+
+    1. EXECUTIVE SUMMARY
+       - Top 3-5 priority story angles for {research_focus} coverage
+       - Key findings and patterns identified about {research_focus}
+       - Critical time-sensitive opportunities related to {research_focus}
+
+    2. INTERMEDIATE RESULTS SUMMARY
+       - Trend Research Findings: Include the complete results from the trend research phase
+       - News Aggregation Results: Include the complete results from the news aggregation phase
+       - Content Strategy Analysis: Include the complete results from the content strategy phase
+
+    3. {research_focus} COMPREHENSIVE ANALYSIS
+       - Detailed breakdown of all research findings on {research_focus}
+       - Expert perspectives and stakeholder analysis
+       - Historical context and future outlook for {research_focus}
+
+    4. BREAKING NEWS DIGEST
+       - Current breaking stories related to {research_focus} with full context
+       - Developing stories to monitor within {research_focus}
+       - Source verification and credibility notes
+
+    5. CONTENT RECOMMENDATIONS
+       - Fully developed story proposals focused on {research_focus} with production details
+       - Interview subject contacts and backgrounds (experts on {research_focus})
+       - Visual element requirements and sourcing for {research_focus} coverage
+       - Production timeline and resource needs
+
+    6. PRODUCTION PRIORITIES
+       - Recommended shooting schedule for {research_focus} content
+       - Resource allocation suggestions
+       - Risk assessment and contingency plans for {research_focus} coverage
+
+    7. COMPETITIVE ANALYSIS
+       - What other networks are covering {research_focus}
+       - Unique angles and differentiation opportunities for {research_focus}
+
+    8. APPENDIX
+       - Full source list with links related to {research_focus}
+       - Contact information for interview subjects (experts on {research_focus})
+       - Additional research resources for {research_focus}
+
+    Format the report for easy scanning with clear headings, bullet points,
+    and highlighted action items. Use professional broadcast journalism tone.
+    Make the report actionable for producers, directors, and journalists covering {research_focus}.
+    {% else %}
+    Compile all research, news aggregation, and content strategy into a comprehensive,
+    broadcast-ready report for the production team.
+
+    The report must include:
+
+    1. EXECUTIVE SUMMARY
+       - Top 3-5 priority stories for immediate production
+       - Key trends and patterns identified
+       - Critical time-sensitive opportunities
+
+    2. INTERMEDIATE RESULTS SUMMARY
+       - Trend Research Findings: Include the complete results from the trend research phase
+       - News Aggregation Results: Include the complete results from the news aggregation phase
+       - Content Strategy Analysis: Include the complete results from the content strategy phase
+
+    3. TRENDING TOPICS ANALYSIS
+       - Detailed breakdown of all identified trends
+       - Audience engagement metrics
+       - Broadcast suitability ratings
+
+    4. BREAKING NEWS DIGEST
+       - Current breaking stories with full context
+       - Developing stories to monitor
+       - Source verification and credibility notes
+
+    5. CONTENT RECOMMENDATIONS
+       - Fully developed story proposals with production details
+       - Interview subject contacts and backgrounds
+       - Visual element requirements and sourcing
+       - Production timeline and resource needs
+
+    6. PRODUCTION PRIORITIES
+       - Recommended shooting schedule
+       - Resource allocation suggestions
+       - Risk assessment and contingency plans
+
+    7. COMPETITIVE ANALYSIS
+       - What other networks are covering
+       - Unique angles and differentiation opportunities
+
+    8. APPENDIX
+       - Full source list with links
+       - Contact information for interview subjects
+       - Additional research resources
+
+    Format the report for easy scanning with clear headings, bullet points,
+    and highlighted action items. Use professional broadcast journalism tone.
+    Make the report actionable for producers, directors, and journalists.
+    {% endif %}
+  expected_output: >
+    {% if research_focus %}
+    A comprehensive, professionally formatted research report on {research_focus} (8-15 pages)
+    in markdown format, structured for TV production team use. Include executive summary,
+    detailed analysis of {research_focus}, actionable recommendations, and complete source
+    attribution. The report should enable immediate production decisions and story development
+    for covering {research_focus}.
+    {% else %}
+    A comprehensive, professionally formatted research report (8-15 pages) in markdown
+    format, structured for TV production team use. Include executive summary,
+    detailed analysis, actionable recommendations, and complete source attribution.
+    The report should enable immediate production decisions and story development.
+    {% endif %}
+  agent: reporting_analyst
+  output_file: 'reports/tv_research_report_{timestamp}.md'
+  context:
+    - trend_research_task
+    - news_aggregation_task
+    - content_strategy_task

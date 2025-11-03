@@ -55,6 +55,8 @@ def run(topic=None, store_in_db=False):
     print("   - Reporting Analyst: Compiling final report")
     print("\n" + "-"*80 + "\n")
 
+    start_time = datetime.utcnow()
+
     try:
         crew = TVResearchCrew().crew()
         print("✅ Crew initialized successfully!")
@@ -62,10 +64,14 @@ def run(topic=None, store_in_db=False):
 
         result = crew.kickoff(inputs=inputs)
 
+        end_time = datetime.utcnow()
+        execution_time = int((end_time - start_time).total_seconds())
+
         print("\n" + "="*80)
         print("✅ RESEARCH COMPLETE!")
         print("="*80)
         print(f"\n📄 Report saved to: reports/tv_research_report_*.md")
+        print(f"⏱️  Total execution time: {execution_time} seconds")
         print("\n💡 The crew has completed comprehensive research on trending topics")
         print("   and compiled actionable recommendations for your TV channel.\n")
 
@@ -76,9 +82,9 @@ def run(topic=None, store_in_db=False):
                 research_result = ResearchResult(
                     topic=topic,
                     status='completed',
-                    completed_at=datetime.utcnow(),
+                    completed_at=end_time,
                     result_content=str(result),
-                    execution_time=0  # Could be enhanced to track actual execution time
+                    execution_time=execution_time
                 )
                 db.add(research_result)
                 db.commit()

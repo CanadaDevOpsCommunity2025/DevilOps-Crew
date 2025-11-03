@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Modified `src/tv_research/worker.py` to manually enqueue subsequent jobs when each phase completes
   - Updated `src/tv_research/api.py` to remove incorrect RQ dependency usage
   - Queue processing now works correctly through all stages (trend research → news aggregation → content strategy → final reporting)
+- **Execution Time Tracking**: Fixed execution_time field returning null values
+  - Modified `src/tv_research/worker.py` to calculate execution time based on task start/completion timestamps
+  - Updated `src/tv_research/main.py` to track and store actual execution time for synchronous runs
+  - API now returns accurate execution times for completed research tasks
 
 ## [1.0.0] - 2025-11-03
 

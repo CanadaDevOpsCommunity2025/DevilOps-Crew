@@ -7,6 +7,8 @@ try:
     print("Research Results in Database:")
     for r in results:
         print(f"ID: {r.id}, Status: {r.status}, Topic: {r.topic}")
+        if r.execution_time:
+            print(f"  Execution Time: {r.execution_time} seconds")
         if r.completed_at:
             print(f"  Completed: {r.completed_at}")
         if r.error_message:

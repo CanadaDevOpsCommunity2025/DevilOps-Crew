@@ -218,7 +218,10 @@ with tab3:
     auto_refresh = st.checkbox("Auto-refresh every 30 seconds", value=True)
 
     # Refresh button
-    if st.button("🔄 Refresh Now") or auto_refresh:
+    refresh_now = st.button("🔄 Refresh Now")
+
+    # Always refresh on first load or when refresh is requested
+    if refresh_now or auto_refresh or 'last_refresh' not in st.session_state:
         # System Health Overview
         st.subheader("🏥 System Health Overview")
 
@@ -404,10 +407,15 @@ with tab3:
         except Exception as e:
             st.error(f"Could not load performance metrics: {e}")
 
-    # Auto-refresh logic
-    if auto_refresh:
-        time.sleep(30)
-        st.rerun()
+        # Store refresh timestamp
+        st.session_state.last_refresh = datetime.now()
+
+    # Auto-refresh logic (outside the main content to avoid blocking)
+    if auto_refresh and 'last_refresh' in st.session_state:
+        time_since_refresh = (datetime.now() - st.session_state.last_refresh).total_seconds()
+        if time_since_refresh >= 30:
+            time.sleep(1)  # Small delay to prevent rapid refreshes
+            st.rerun()
 
 with tab4:
     st.header("About")

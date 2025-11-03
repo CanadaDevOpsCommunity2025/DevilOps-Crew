@@ -20,7 +20,7 @@ def get_db():
     finally:
         db.close()
 
-def update_task_status(task_id: int, status: str, result_content: str = None, error_message: str = None):
+def update_task_status(task_id: int, status: str, result_content: str = None, error_message: str = None, execution_time: int = None):
     """Update task status in database"""
     db = get_db()
     try:
@@ -30,9 +30,19 @@ def update_task_status(task_id: int, status: str, result_content: str = None, er
             if result_content:
                 task.result_content = result_content
                 task.completed_at = datetime.utcnow()
+                # Calculate execution time if not provided
+                if execution_time is None and task.created_at:
+                    execution_time = int((datetime.utcnow() - task.created_at).total_seconds())
+                if execution_time is not None:
+                    task.execution_time = execution_time
             if error_message:
                 task.error_message = error_message
                 task.completed_at = datetime.utcnow()
+                # Calculate execution time for failed tasks too
+                if execution_time is None and task.created_at:
+                    execution_time = int((datetime.utcnow() - task.created_at).total_seconds())
+                if execution_time is not None:
+                    task.execution_time = execution_time
             db.commit()
     except Exception as e:
         print(f"Database error updating task {task_id}: {e}")

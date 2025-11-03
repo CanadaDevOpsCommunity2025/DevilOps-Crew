@@ -605,6 +605,30 @@ docker compose build
 4. **Report Archiving**: Save reports with timestamps for historical reference
 5. **Customization**: Adjust agents and tasks for your specific channel's needs
 
+
+## 📸 UI Screenshots
+
+### Main Interface
+![TV Research Tool - Main Interface](assets/ui_screenshot1.png)
+
+### New Research Tab
+![TV Research Tool - New Research](assets/ui_screenshot2.png)
+
+### Research History
+![TV Research Tool - Research History](assets/ui_screenshot3.png)
+
+### Real-time Progress Tracking
+![TV Research Tool - Progress Tracking](assets/ui_screenshot4.png)
+
+### Research Results View
+![TV Research Tool - Results Display](assets/ui_screenshot5.png)
+
+### Queue Status Monitoring
+![TV Research Tool - Queue Status](assets/ui_screenshot6.png)
+
+### Detailed Report View
+![TV Research Tool - Detailed Reports](assets/ui_screenshot7.png)
+
 ## 🤝 Support & Contribution
 
 For issues, improvements, or custom features:
